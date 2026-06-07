@@ -1,90 +1,141 @@
-# BBDemoStoreBot - chat bot
-It is repository for chat bot: [@BBDemoStoreBot](https://t.me/BBDemoStoreBot)
+# BBDemoStoreBot2026 — Full Edition
 
-It is demo bot for to receive payments automatically via CoinPaymentsLib
+بوت تيليغرام متكامل مبني على منصة **Bots.Business**، يشمل:
+- 💳 استقبال مدفوعات BTC عبر CoinPayments (مؤقتة + دائمة)
+- 👛 محفظة إلكترونية داخلية (إرسال / استلام بين المستخدمين)
+- ⭐ نظام نقاط ومكافآت
+- 🤝 نظام إحالة وعمولة متعدد المستويات (L1 + L2)
 
-![](https://i.imgur.com/YbT6LgE.png)
+---
 
+## هيكل الملفات
 
+```
+BBDemoStoreBot2026/
+├── bot.json
+├── commands/
+│   ├── Common/
+│   │   ├── _.js                    ← wildcard + معالجة الأزرار
+│   │   ├── _start.js               ← ترحيب + معالجة رابط الإحالة
+│   │   ├── _balance.js             ← الرصيد الشامل
+│   │   ├── _history.js             ← سجل الشحن
+│   │   ├── _help.js                ← الدليل الكامل
+│   │   └── _setup.js               ← لوحة الإعداد (للمسؤول)
+│   │
+│   ├── 👛 E-Wallet/                ← المحفظة الإلكترونية
+│   │   ├── _ewallet.js             ← لوحة التحكم
+│   │   ├── _myid.js                ← معرّفي
+│   │   ├── _receive.js             ← كيف أستقبل
+│   │   ├── _send.js                ← إرسال (مع تأكيد)
+│   │   ├── _send_confirm.js        ← تأكيد الإرسال
+│   │   ├── _send_cancel.js         ← إلغاء
+│   │   └── _txhistory.js           ← سجل المعاملات الداخلية
+│   │
+│   ├── ⭐ Points/                  ← نظام النقاط
+│   │   ├── _points.js              ← رصيد النقاط وكيف أكسب
+│   │   ├── _redeem.js              ← استبدال النقاط بـ BTC
+│   │   └── _points_log.js          ← سجل النقاط
+│   │
+│   ├── 🤝 Referral/               ← نظام الإحالة
+│   │   ├── _referral.js            ← رابطي وإحصائياتي
+│   │   ├── _ref_stats.js           ← تفاصيل الإحالات
+│   │   └── _ref_commissions.js     ← سجل العمولات
+│   │
+│   ├── ⏲ Temporary Wallet/
+│   │   ├── _pay.js                 ← دفع بمبلغ مخصص
+│   │   ├── _pay2.js / _pay5.js     ← اختصارات
+│   │   ├── _onCreatePayment.js     ← عرض QR + تعليمات
+│   │   ├── _onPaymentCompleted.js  ← تحديث كل الأنظمة
+│   │   ├── _on_txn_id.js           ← حالة معاملة
+│   │   └── _onipn.js               ← IPN تدريجي
+│   │
+│   └── 💰 Permanent Wallet/
+│       ├── _createWallet.js
+│       ├── _createWallet_confirm.js
+│       ├── _onWalletCreation.js
+│       ├── _onIncome.js            ← تحديث كل الأنظمة
+│       ├── _onPermanentWalletIPN.js
+│       ├── _test.js
+│       └── 👛 My wallet.js
+│
+└── libs/
+    ├── CoinPayments.js    ← بدون تعديل
+    ├── ResourcesLib.js    ← للتوافق مع الكود القديم
+    ├── WalletLib.js       ← المحفظة الإلكترونية
+    ├── PointsLib.js       ← نظام النقاط
+    └── ReferralLib.js     ← نظام الإحالة والعمولة
+```
 
-## What it is?
-This repository can be imported to [Bots.Business](https://bots.business) as a worked chat bot.
+---
 
-[Bots.Business](https://bots.business) - it is probably the first CBPaaS - Chat Bot Platform as a Service.
+## تدفق الأنظمة
 
-A CBPaaS is a cloud-based platform that enables developers to create chatbots without needing to build backend infrastructure.
+```
+مستخدم يشحن BTC
+       │
+       ▼
+_onPaymentCompleted / _onIncome
+       │
+       ├──► WalletLib.addBalance()     ← يُضاف للمحفظة
+       ├──► PointsLib.addPoints()      ← يكسب نقاط
+       └──► ReferralLib.distributeCommission()
+                  │
+                  ├──► L1 (5%)  ← المُحيل المباشر
+                  └──► L2 (2%)  ← جد المُحيل
 
-## Create your own bot for Telegram from this Git repo
+مستخدم يُرسل BTC لمستخدم آخر
+       │
+       ▼
+WalletLib.send()
+       ├──► يُخصم من المُرسِل
+       ├──► يُضاف للمستلم (بعد خصم الرسوم)
+       └──► PointsLib.addPoints()  ← نقاط على الإرسال
 
-How to create bot?
-1. Create bot with [@BotFather](https://telegram.me/BotFather) and take Secret Token
-2. Create bot in App and add Secret Token
-3. Add Public Key from App as [Deploy key](https://developer.github.com/v3/guides/managing-deploy-keys/#deploy-keys) with read access (and write access for bot exporting if you need it)
-4. Do import for this git repo
+مستخدم ينضم برابط إحالة
+       │
+       ▼
+/start ref[ID]
+       ├──► ReferralLib.linkReferral()
+       ├──► WalletLib.addBalance(referrer, bonus)  ← مكافأة فورية
+       └──► PointsLib.addPoints(referrer, ptsRef)  ← نقاط فورية
+```
 
-Now you can talk with yours new Telegram Bot
+---
 
-See [more](https://help.bots.business/getting-started)
+## الإعداد
 
-## Commands - in commands folder
-File name - it is command name (Bot it can be rewritten in command description)
+### 1. إعداد CoinPayments + BB API
 
-Command can have: `name`, `help`, `aliases` (second names), `answer`, `keyboard`, `scnarios` (for simple logic) and other options.
+```
+/setup private:PRIVATEKEY public:PUBLICKEY bbapi:BBAPIKEY botname:YOUR_BOT_USERNAME
+```
 
-### Command description
-It is file header:
+### 2. تخصيص الإعدادات (اختياري)
 
-    /*CMD
-      command: /test
-      help: this is help for ccommand
-      need_reply: [ true or false here ]
-      auto_retry_time: [ time in sec ]
-      answer: it is example answer for /test command
-      keyboard: button1, button2
-      aliases: /test2, /test3
-    CMD*/
+```
+/setup btcprice:65000
+/setup sendfee:0.01        ← رسوم الإرسال 1%
+/setup minsend:0.000001
+/setup comml1:0.05         ← عمولة L1 = 5%
+/setup comml2:0.02         ← عمولة L2 = 2%
+/setup refbonus:0.0001     ← مكافأة الإحالة
+/setup ptsbtc:1000         ← 1000 نقطة لكل BTC
+/setup ptsref:500          ← 500 نقطة لكل إحالة
+/setup satpt:10            ← 10 ساتوشي لكل نقطة
+/setup minredeem:100
+```
 
-See [more](https://help.bots.business/commands)
+---
 
-### Command body
-It is command code in JavaScript.
-Use Bot Java Script for logic in command.
+## القيم الافتراضية
 
-For example:
-> Bot.sendMessage(2+2);
-
-See [more](https://help.bots.business/scenarios-and-bjs)
-
-
-## Libraries - in libs folder
-You can store common code in the libs folder. File name - it is library name.
-
-For example code in myLib.js:
-
-    function hello(){ Bot.sendMessage("Hello from lib!") }
-    function goodbye(name){ Bot.sendMessage("Goodbye, " + name) }
-
-    publish({
-      sayHello: hello,
-      sayGoodbyeTo: goodbye
-    })
-
-then you can run in any bot's command:
-
-    Libs.myLib.hello()
-    Libs.myLib.sayGoodbyeTo("Alice")
-
-See [more](https://help.bots.business/git/library)
-
-## Other bots example
-See other bots examples in the [github](https://github.com/bots-business?utf8=✓&tab=repositories&q=&type=public&language=javascript) or in the [Bot Store](https://bots.business/)
-
-
-## Other help
-[Help.bots.business](https://help.bots.business)
-
-## API
-See [API](https://api.bots.business/docs#/docs/summary)
-
-
-![](https://bots.business/images/web-logo.png)
+| الإعداد | القيمة |
+|---------|--------|
+| عمولة L1 | 5% |
+| عمولة L2 | 2% |
+| مكافأة إحالة | 0.0001 BTC + 500 نقطة |
+| نقاط/BTC | 1000 |
+| نقاط/إرسال | 10 |
+| ساتوشي/نقطة | 10 |
+| حد أدنى استبدال | 100 نقطة |
+| رسوم الإرسال | 0% |

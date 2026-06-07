@@ -9,5 +9,10 @@
   aliases: 
 CMD*/
 
-//Bot.sendMessage("IPN called: ");
-//Bot.sendMessage(inspect(options));
+// IPN للمحفظة الدائمة - سجّل الحدث للمراقبة
+// المعالجة الفعلية تتم في /onIncome
+let status = options.status;
+let statusText = options.status_text || "";
+
+// يمكن إضافة logging هنا للمراقبة
+// Bot.sendMessage("IPN: " + status + " - " + statusText);

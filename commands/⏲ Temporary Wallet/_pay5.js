@@ -1,6 +1,6 @@
 /*CMD
   command: /pay5
-  help: 
+  help: شحن 0.0005 BTC
   need_reply: 
   auto_retry_time: 
   folder: ⏲ Temporary Wallet
@@ -9,4 +9,4 @@
   aliases: 
 CMD*/
 
-Bot.runCommand("/pay 0.0005")
+Bot.runCommand("/pay 0.0005");

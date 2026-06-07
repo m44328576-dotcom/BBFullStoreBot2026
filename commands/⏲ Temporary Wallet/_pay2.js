@@ -1,6 +1,6 @@
 /*CMD
   command: /pay2
-  help: 
+  help: شحن 0.0002 BTC
   need_reply: 
   auto_retry_time: 
   folder: ⏲ Temporary Wallet

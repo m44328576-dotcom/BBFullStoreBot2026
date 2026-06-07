@@ -4,7 +4,6 @@ growthResource = function(resource){
   return {
     resource: resource,
 
-    /// auto growthing or decreasing
     propName: function(){ return this.resource.propName() + '_growth'},
 
     info: function(){
@@ -36,7 +35,7 @@ growthResource = function(resource){
       if(growth){ return growth.enabled }
       return false;
     },
-    
+
     _toggle: function(status){
       let growth = this.info();
       if(!growth){ return }
@@ -70,7 +69,7 @@ growthResource = function(resource){
       return duration_in_seconds / growth.interval;
     },
 
-    _calcMinMax(result, growth){
+    _calcMinMax: function(result, growth){
       if((growth.min)&&(growth.min > result)){
         return growth.min
       }
@@ -82,7 +81,8 @@ growthResource = function(resource){
       return result
     },
 
-    _calcByTotalIteractions(value, total_iterations, growth){
+    _calcByTotalIteractions: function(value, total_iterations, growth){
+      let result;
       if(growth.type=='simple'){
         result = value + total_iterations * growth.increment
       }
@@ -98,7 +98,7 @@ growthResource = function(resource){
       return result;
     },
 
-    _getTotalIterationsWithLimit(growth){
+    _getTotalIterationsWithLimit: function(growth){
       let total_iterations = this.totalIterations(growth);
 
       if(!growth.max_iterations_count){ return total_iterations }
@@ -107,11 +107,11 @@ growthResource = function(resource){
       if(total < growth.max_iterations_count){
         return total_iterations
       }
-      
+
       return growth.max_iterations_count - growth.completed_iterations_count;
     },
 
-    _calcValue(value, growth){
+    _calcValue: function(value, growth){
       let total_iterations = this._getTotalIterationsWithLimit(growth);
 
       if(total_iterations<1){ return }
@@ -119,12 +119,12 @@ growthResource = function(resource){
       let fraction = total_iterations % 1;
       total_iterations = total_iterations - fraction;
 
-      result = this._calcByTotalIteractions(value, total_iterations, growth)
+      let result = this._calcByTotalIteractions(value, total_iterations, growth)
 
-      growth.completed_iterations_count+= total_iterations;
-      
+      growth.completed_iterations_count += total_iterations;
+
       result = this._calcMinMax(result, growth);
-      
+
       this._updateIteration(growth, fraction * 1000);
 
       return result;
@@ -135,11 +135,11 @@ growthResource = function(resource){
       if(!growth){ return value }
       if(!growth.enabled){ return value }
 
-      new_value = this._calcValue(value, growth);
+      let new_value = this._calcValue(value, growth);
 
       if(!new_value){ return value }
 
-      this.resource._set(new_value);  /// update value
+      this.resource._set(new_value);
 
       return new_value;
     },
@@ -149,7 +149,6 @@ growthResource = function(resource){
       if(!growth){ return }
 
       let started_at = (new Date().getTime());
-      /// started same early
       if(fraction){ started_at = started_at - fraction }
 
       growth.started_at = started_at;
@@ -158,12 +157,12 @@ growthResource = function(resource){
     },
 
     _updateBaseValue: function(base_value){
-      growth = this.info();
+      let growth = this.info();
       if(!growth){ return }
 
       growth.base_value = base_value;
       growth.completed_iterations_count = 0;
-      return this._updateIteration(this.growth);
+      return this._updateIteration(growth);
     },
 
     _newGrowth: function(options){
@@ -186,21 +185,18 @@ growthResource = function(resource){
     },
 
     add: function(options){
-      /// absolute growth value
       options.type = 'simple';
       options.increment = options.value;
       return this._addAs(options);
     },
 
     addPercent: function(options){
-      /// percent
       options.type = 'percent';
       options.increment = options.percent;
       return this._addAs(options);
     },
 
     addCompoundInterest: function(options){
-      /// compound percent
       options.type = 'compound_interest';
       options.increment = options.percent;
       return this._addAs(options);
@@ -226,11 +222,11 @@ commonResource = function(objName, objID, resName){
 
     isNumber: function(value){ return typeof(value)=='number' },
 
-    verifyNumber: function(value){ 
+    verifyNumber: function(value){
       if(!this.isNumber(value)){
         let evalue = "";
         if(typeof(value)!="undefined"){ evalue = JSON.stringify(value) }
-        throw 'ResLib: value must be number only. It is not number: ' + typeof(value) + " " + evalue;
+        throw 'ResLib: value must be number only. Got: ' + typeof(value) + " => " + evalue;
       }
     },
 
@@ -242,7 +238,6 @@ commonResource = function(objName, objID, resName){
     baseValue: function(){
       let cur_value = Bot.getProperty(this.propName());
       if(typeof(cur_value)=='undefined'){ return 0 }
-
       return cur_value;
     },
 
@@ -254,7 +249,7 @@ commonResource = function(objName, objID, resName){
       }
       return cur_value;
     },
-    
+
     add: function(res_amount){
       this.verifyNumber(res_amount);
       this.set(this.value() + res_amount)
@@ -265,14 +260,14 @@ commonResource = function(objName, objID, resName){
       this.verifyNumber(res_amount);
       return this.value() >= res_amount;
     },
-    
+
     remove: function(res_amount){
       if(!this.have(res_amount)){
-        throw 'ResLib: not enough resources'
+        throw 'ResLib: رصيد غير كافٍ'
       }
       return this.removeRes(res_amount);
     },
-    
+
     removeAnyway: function(res_amount){
       this.verifyNumber(res_amount);
       return this.removeRes(res_amount)
@@ -295,59 +290,36 @@ commonResource = function(objName, objID, resName){
       return this._set(res_amount);
     },
 
-    anywayTakeFromAndTransferTo: function(fromResource, toResource, res_amount){
-      if(fromResource.name!=toResource.name){
-        throw 'ResLib: can not transfer different resources'
+    // نقل من مورد لآخر (نفس النوع)
+    transferTo: function(anotherResource, res_amount){
+      if(!this.have(res_amount)){
+        throw 'ResLib: رصيد غير كافٍ للتحويل'
       }
+      this.removeAnyway(res_amount);
+      return anotherResource.add(res_amount);
+    },
 
+    // تبادل بمبالغ مختلفة
+    exchangeTo: function(anotherResource, options){
+      if(!this.have(options.remove_amount)){
+        throw 'ResLib: رصيد غير كافٍ للتبادل'
+      }
+      this.removeAnyway(options.remove_amount);
+      return anotherResource.add(options.add_amount);
+    },
+
+    anywayTakeFromAndTransferTo: function(fromResource, toResource, res_amount){
+      if(fromResource.name != toResource.name){
+        throw 'ResLib: لا يمكن تحويل موارد مختلفة'
+      }
       if(fromResource.removeAnyway(res_amount)){
         return toResource.add(res_amount)
       }
       return false
     },
 
-    anywayTakeFromAndTransferToDifferent: function(fromResource, toResource, remove_amount, add_amount){
-      if(fromResource.removeAnyway(remove_amount)){
-        return toResource.add(add_amount)
-      }
-      return false
-    },
-
-    takeFromAndTransferTo: function(fromResource, toResource, res_amount){
-      if(!fromResource.have(res_amount)){
-        throw 'ResLib: not enough resources for transfer'
-      }
-
-      return this.anywayTakeFromAndTransferTo(fromResource, toResource, res_amount)
-    },
-
-    takeFromAndTransferToDifferent: function(fromResource, toResource, remove_amount, add_amount){
-      if(!fromResource.have(remove_amount)){
-        throw 'ResLib: not enough resources for transfer'
-      }
-
-      return this.anywayTakeFromAndTransferToDifferent(fromResource, toResource, remove_amount, add_amount)
-    },
-
     takeFromAnother: function(anotherResource, res_amount){
-      return this.takeFromAndTransferTo(anotherResource, this, res_amount);
-    },
-
-    transferTo: function(anotherResource, res_amount){
-      return this.takeFromAndTransferTo(this, anotherResource, res_amount);
-    },
-
-    exchangeTo: function(anotherResource, options){
-      return this.takeFromAndTransferToDifferent(this, 
-        anotherResource, options.remove_amount, options.add_amount );
-    },
-
-    takeFromAnotherAnyway: function(anotherResource, res_amount){
       return this.anywayTakeFromAndTransferTo(anotherResource, this, res_amount);
-    },
-
-    transferToAnyway: function(anotherResource, res_amount){
-      return this.anywayTakeFromAndTransferTo(this, anotherResource, res_amount);
     }
 
   }
@@ -360,9 +332,8 @@ growthFor = function(resource){
 }
 
 getResourceFor = function(object, object_id, resName){
-  let res =  commonResource(object, object_id, resName);
+  let res = commonResource(object, object_id, resName);
   growthFor(res);
-
   return res;
 }
 
@@ -382,15 +353,10 @@ anotherChatResource = function(resName, chatid){
   return getResourceFor('chat', chatid, resName);
 }
 
-
-
 publish({
   userRes: userResource,
   chatRes: chatResource,
-
   anotherUserRes: anotherUserResource,
   anotherChatRes: anotherChatResource,
-
   growthFor: growthFor
-
 })
