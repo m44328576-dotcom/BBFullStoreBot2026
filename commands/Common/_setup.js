@@ -122,6 +122,14 @@ parts.forEach(function(part) {
     let m = parseFloat(v);
     if (!isNaN(m) && m > 0) { Bot.setProperty("pts_min_redeem", m, "float"); updated.push("✅ Min Redeem: " + m + " pts"); }
   }
+  else if (k === "xpub") {
+    if (v.indexOf("xpub") === 0 && v.length > 100) {
+      Bot.setProperty("btc_xpub", v, "string");
+      updated.push("✅ xpub: " + v.substr(0,20) + "...");
+    } else {
+      updated.push("❌ xpub غير صالح (يجب أن يبدأ بـ xpub)");
+    }
+  }
 });
 
 if (updated.length > 0) {
