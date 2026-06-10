@@ -29,6 +29,7 @@ if (message === "🤝 إحالاتي")     { Bot.runCommand("/referral"); return
 if (message === "❓ مساعدة")      { Bot.runCommand("/help");     return; }
 if (message === "📋 سجل المعاملات") { Bot.runCommand("/txhistory"); return; }
 
+if (message === "💳 إيداع")   { Bot.runCommand("/deposit"); return; }
 if (message === "💳 شحن رصيد") {
   let msg = "💳 *اختر مبلغ الشحن:*\n━━━━━━━━━━━━━━\n\n";
   msg += "⏲ /pay2 — `0.0002 BTC`\n";

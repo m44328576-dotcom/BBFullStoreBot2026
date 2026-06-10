@@ -122,13 +122,15 @@ parts.forEach(function(part) {
     let m = parseFloat(v);
     if (!isNaN(m) && m > 0) { Bot.setProperty("pts_min_redeem", m, "float"); updated.push("✅ Min Redeem: " + m + " pts"); }
   }
-  else if (k === "xpub") {
-    if (v.indexOf("xpub") === 0 && v.length > 100) {
-      Bot.setProperty("btc_xpub", v, "string");
-      updated.push("✅ xpub: " + v.substr(0,20) + "...");
-    } else {
-      updated.push("❌ xpub غير صالح (يجب أن يبدأ بـ xpub)");
+  else if (k === "btcaddr") {
+    if (v.length > 20) {
+      Bot.setProperty("admin_btc_address", v, "string");
+      updated.push("✅ BTC Address: " + v.substr(0,15) + "...");
     }
+  }
+  else if (k === "mindeposit") {
+    let md = parseFloat(v);
+    if (!isNaN(md) && md > 0) { Bot.setProperty("min_deposit_btc", md, "float"); updated.push("✅ Min Deposit: " + md + " BTC"); }
   }
 });
 
